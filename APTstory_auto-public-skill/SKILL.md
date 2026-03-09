@@ -1,3 +1,9 @@
+아파트너는 구현되어있는게 있던데 없어서 만들어봤습니다
+아파트 관리사무소에 문의하시면 아파트스토리 도메인을 알수있습니다.
+eg. 홍길동더샵아파트 - hgdthesharp.aptstory.com 이런식으로
+
+Agent에게 평문으로 던져주고 간단하게 사용하세요~
+
 ---
 name: aptstory-web-reservation
 description: Automate AptStory apartment-specific web parking flows through the official website session, not the mobile app. Use when Codex needs to log in to an AptStory site such as `https://subdomain.aptstory.com`, inspect confirmed parking APIs, list visitor reservations, create or delete visitor reservations, build bulk reservation tooling, or reverse engineer a new apartment AptStory parking workflow from the web UI.
