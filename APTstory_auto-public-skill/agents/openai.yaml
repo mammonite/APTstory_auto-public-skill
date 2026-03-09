@@ -1,0 +1,4 @@
+interface:
+  display_name: "AptStory Web Reservation"
+  short_description: "AptStory web parking automation"
+  default_prompt: "Use $aptstory-web-reservation to log in to an apartment-specific AptStory website and automate visitor parking reservation listing, creation, lookup, or deletion."
