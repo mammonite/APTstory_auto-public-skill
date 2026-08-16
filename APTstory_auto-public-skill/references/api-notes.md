@@ -91,9 +91,22 @@ Observed response fields:
 - `POST /parking/blacklist`
 - `GET /parking/ticket`
 
+## CLI coverage
+
+[`scripts/aptstory_web_cli.py`](../scripts/aptstory_web_cli.py) currently covers:
+
+- login + settings
+- visit list/get/create/update/delete
+- bookmark list/create/delete
+
+Not yet wrapped in the CLI (still available on the API):
+
+- bookmark update (`PUT /parking/bookmark/{bookmarkId}`)
+- whitelist / balance / ticket / access / blacklist helpers
+
 ## Safety caveat
 
-The server accepted `POST /parking/visit` with only `carNo` and created a same-day reservation automatically. Do not rely on that behavior in user-facing tooling. Always send explicit `visitStartDate` and `visitEndDate`.
+The server accepted `POST /parking/visit` with only `carNo` and created a same-day reservation automatically. Do not rely on that behavior in user-facing tooling. Always send explicit `visitStartDate` and `visitEndDate`. The CLI also rejects inverted date ranges (`end-date < start-date`).
 
 ## Reverse engineering guidance for another AptStory apartment
 

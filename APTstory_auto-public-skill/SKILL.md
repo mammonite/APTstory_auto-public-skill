@@ -1,17 +1,13 @@
-아파트너는 구현되어있는게 있던데 없어서 만들어봤습니다
-아파트 관리사무소에 문의하시면 아파트스토리 도메인을 알수있습니다.
-eg. 홍길동더샵아파트 - hgdthesharp.aptstory.com 이런식으로
-
-Agent에게 평문으로 던져주고 간단하게 사용하세요~
-
 ---
 name: aptstory-web-reservation
-description: Automate AptStory apartment-specific web parking flows through the official website session, not the mobile app. Use when Codex needs to log in to an AptStory site such as `https://subdomain.aptstory.com`, inspect confirmed parking APIs, list visitor reservations, create or delete visitor reservations, build bulk reservation tooling, or reverse engineer a new apartment AptStory parking workflow from the web UI.
+description: Automate AptStory apartment-specific web parking flows through the official website session, not the mobile app. Use when Codex needs to log in to an AptStory site such as `https://subdomain.aptstory.com`, inspect confirmed parking APIs, list visitor reservations, create/update/delete visitor reservations, manage bookmarks, or reverse engineer a new apartment AptStory parking workflow from the web UI.
 ---
 
 # AptStory Web Reservation
 
-Use the apartment-specific AptStory website as the primary automation target. Prefer the web flow over the Android app when both expose the same parking features because the web flow is simpler: form login plus session cookies.
+아파트스토리(AptStory) 단지별 웹사이트 세션으로 방문차량 예약을 자동화합니다. 모바일 앱보다 웹 로그인(폼 + 쿠키)이 단순하므로 웹 플로우를 우선합니다.
+
+단지 도메인은 관리사무소에 문의하세요. 예: `홍길동더샵아파트` → `https://hgdthesharp.aptstory.com`
 
 ## Workflow
 
@@ -35,13 +31,25 @@ Read [`references/api-notes.md`](./references/api-notes.md) before changing rese
 
 Use [`scripts/aptstory_web_cli.py`](./scripts/aptstory_web_cli.py) for the baseline implementation. Prefer extending it instead of rewriting login and request plumbing from scratch.
 
+Credentials (prefer env vars):
+
+```bash
+export APTSTORY_BASE_URL="https://your-apartment.aptstory.com"
+export APTSTORY_USERNAME="your-id"
+export APTSTORY_PASSWORD="your-password"
+```
+
 Typical commands:
 
 ```bash
 python3 scripts/aptstory_web_cli.py settings
 python3 scripts/aptstory_web_cli.py list-visits --limit 5
 python3 scripts/aptstory_web_cli.py create-visit --car-no 12가3456 --start-date 2026-03-10 --end-date 2026-03-10
+python3 scripts/aptstory_web_cli.py update-visit 123456 --car-no 12가3456 --start-date 2026-03-11 --end-date 2026-03-11
 python3 scripts/aptstory_web_cli.py delete-visit 123456
+python3 scripts/aptstory_web_cli.py list-bookmarks
+python3 scripts/aptstory_web_cli.py create-bookmark --car-no 12가3456 --title "부모님"
+python3 scripts/aptstory_web_cli.py delete-bookmark 42
 ```
 
 ## Implementation Rules
@@ -49,5 +57,7 @@ python3 scripts/aptstory_web_cli.py delete-visit 123456
 - Prefer web-session automation over app UI automation.
 - Treat `dong` and `ho` as server-derived session fields unless evidence shows otherwise for a different apartment.
 - Require explicit reservation dates in user-facing tooling even if the API accepts less, because the server may create same-day reservations from partial payloads.
+- Validate `end-date >= start-date` before calling create/update.
+- Prefer `APTSTORY_PASSWORD` env var over `--password` so credentials stay out of shell history.
 - Verify create and delete operations against live responses when changing payload shape.
 - If working on a different AptStory apartment, re-check the domain, login form action, and parking endpoints before assuming they match this one exactly.
