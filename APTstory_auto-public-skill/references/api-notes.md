@@ -97,11 +97,14 @@ Observed response fields:
 
 - login + settings
 - visit list/get/create/update/delete
-- bookmark list/create/delete
+- bookmark list/create/update/delete
+- relative dates (`오늘` / `내일` / `모레` / `today` / `tomorrow` / `+N`)
+- `--format text|json` human-readable output
+- optional `.env` loading (`--env-file`)
+- soft API error detection when HTTP 200 embeds `{ "error": ... }` or `{ "success": false }`
 
 Not yet wrapped in the CLI (still available on the API):
 
-- bookmark update (`PUT /parking/bookmark/{bookmarkId}`)
 - whitelist / balance / ticket / access / blacklist helpers
 
 ## Safety caveat

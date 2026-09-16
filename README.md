@@ -72,12 +72,19 @@ visitId 123456 예약 삭제해줘
 
 ### 3. 로그인 정보 설정
 
-비밀번호는 **환경 변수**로 넣는 걸 권장합니다. (쉘 히스토리에 남지 않아요)
+비밀번호는 **환경 변수** 또는 `.env` 파일로 넣는 걸 권장합니다. (쉘 히스토리에 남지 않아요)
 
 ```bash
 export APTSTORY_BASE_URL="https://your-apartment.aptstory.com"
 export APTSTORY_USERNAME="내아이디"
 export APTSTORY_PASSWORD="내비밀번호"
+```
+
+또는:
+
+```bash
+cp APTstory_auto-public-skill/.env.example .env
+# .env 파일을 열어서 단지 주소 / 아이디 / 비밀번호를 채우세요
 ```
 
 ---
@@ -90,30 +97,31 @@ export APTSTORY_PASSWORD="내비밀번호"
 # 주차 설정 확인
 python3 APTstory_auto-public-skill/scripts/aptstory_web_cli.py settings
 
-# 방문차량 목록 (최근 5건)
-python3 APTstory_auto-public-skill/scripts/aptstory_web_cli.py list-visits --limit 5
+# 방문차량 목록 (최근 5건, 표로 보기)
+python3 APTstory_auto-public-skill/scripts/aptstory_web_cli.py list-visits --limit 5 --format text
 
 # 특정 차량번호로 검색
 python3 APTstory_auto-public-skill/scripts/aptstory_web_cli.py list-visits --car-no 12가3456
 
-# 방문차량 예약 등록
+# 방문차량 예약 등록 (날짜는 오늘/내일/모레/+1 도 OK)
 python3 APTstory_auto-public-skill/scripts/aptstory_web_cli.py create-visit \
   --car-no 12가3456 \
-  --start-date 2026-03-10 \
-  --end-date 2026-03-10
+  --start-date 내일 \
+  --end-date 내일
 
 # 예약 수정
 python3 APTstory_auto-public-skill/scripts/aptstory_web_cli.py update-visit 123456 \
   --car-no 12가3456 \
-  --start-date 2026-03-11 \
-  --end-date 2026-03-11
+  --start-date 모레 \
+  --end-date 모레
 
 # 예약 삭제
 python3 APTstory_auto-public-skill/scripts/aptstory_web_cli.py delete-visit 123456
 
-# 즐겨찾기 목록 / 등록 / 삭제
-python3 APTstory_auto-public-skill/scripts/aptstory_web_cli.py list-bookmarks
+# 즐겨찾기 목록 / 등록 / 수정 / 삭제
+python3 APTstory_auto-public-skill/scripts/aptstory_web_cli.py list-bookmarks --format text
 python3 APTstory_auto-public-skill/scripts/aptstory_web_cli.py create-bookmark --car-no 12가3456 --title "부모님"
+python3 APTstory_auto-public-skill/scripts/aptstory_web_cli.py update-bookmark 42 --car-no 12가3456 --title "부모님차"
 python3 APTstory_auto-public-skill/scripts/aptstory_web_cli.py delete-bookmark 42
 ```
 
@@ -141,8 +149,9 @@ API 상세는 [`references/api-notes.md`](./APTstory_auto-public-skill/reference
 
 - **단지마다 도메인이 다릅니다.** 다른 아파트로 옮기면 로그인 URL·API를 다시 확인하세요.
 - **동/호수는 서버가 로그인 세션에서 자동으로 잡습니다.** 직접 넣을 필요 없어요.
-- **날짜는 꼭 명시하세요.** API가 차량번호만으로 당일 예약을 만들어버리는 경우가 있어서, CLI는 시작일·종료일을 필수로 받습니다.
-- **비밀번호를 repo에 올리지 마세요.** 환경 변수만 쓰세요.
+- **날짜는 꼭 명시하세요.** API가 차량번호만으로 당일 예약을 만들어버리는 경우가 있어서, CLI는 시작일·종료일을 필수로 받습니다. `오늘` / `내일` / `모레` / `+1` 도 됩니다.
+- **비밀번호를 repo에 올리지 마세요.** 환경 변수나 `.env`(gitignore 됨)만 쓰세요.
+- **표로 보고 싶으면** `--format text` 를 붙이세요. (에이전트 파싱용 기본값은 `json`)
 
 ---
 
