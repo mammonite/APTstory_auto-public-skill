@@ -76,6 +76,8 @@ class AptStoryClient:
             raise RuntimeError(f"login failed: HTTP {exc.code}") from exc
         except error.URLError as exc:
             raise RuntimeError(f"login failed: network error ({exc.reason})") from exc
+        except OSError as exc:
+            raise RuntimeError(f"login failed: network error ({exc})") from exc
 
         if "/member/logout.apt" not in root_html:
             raise RuntimeError("login failed: logout marker not found (check credentials)")
@@ -180,6 +182,11 @@ class AptStoryClient:
             raise self._as_api_error(exc.code, payload) from exc
         except error.URLError as exc:
             raise RuntimeError(f"network error: {exc.reason}") from exc
+        except OSError as exc:
+            # Read timeouts and connection resets are not wrapped in URLError.
+            raise RuntimeError(f"network error: {exc}") from exc
+        except UnicodeDecodeError as exc:
+            raise RuntimeError(f"non UTF-8 response from {path}") from exc
 
         try:
             return json.loads(body)
@@ -320,11 +327,22 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
         help="Skip Korean plate format check for --car-no.",
     )
 
+    # Also accept --allow-any-car-no after the subcommand. SUPPRESS keeps the
+    # subparser from overwriting a value given before the subcommand.
+    car_no_parent = argparse.ArgumentParser(add_help=False)
+    car_no_parent.add_argument(
+        "--allow-any-car-no",
+        action="store_true",
+        default=argparse.SUPPRESS,
+        help="Skip Korean plate format check for --car-no.",
+    )
+
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("settings", help="Fetch parking settings")
 
     list_visits_parser = subparsers.add_parser(
-        "list-visits", help="List visitor reservations"
+        "list-visits", help="List visitor reservations",
+        parents=[car_no_parent],
     )
     list_visits_parser.add_argument("--page", type=int, default=1)
     list_visits_parser.add_argument("--limit", type=int, default=10)
@@ -336,7 +354,8 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     get_visit_parser.add_argument("visit_id", type=int)
 
     create_visit_parser = subparsers.add_parser(
-        "create-visit", help="Create one visitor reservation"
+        "create-visit", help="Create one visitor reservation",
+        parents=[car_no_parent],
     )
     create_visit_parser.add_argument("--car-no", required=True)
     create_visit_parser.add_argument("--start-date", required=True, help="YYYY-MM-DD")
@@ -345,7 +364,8 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     create_visit_parser.add_argument("--memo", default="")
 
     update_visit_parser = subparsers.add_parser(
-        "update-visit", help="Update one visitor reservation"
+        "update-visit", help="Update one visitor reservation",
+        parents=[car_no_parent],
     )
     update_visit_parser.add_argument("visit_id", type=int)
     update_visit_parser.add_argument("--car-no", required=True)
@@ -366,7 +386,8 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     list_bookmarks_parser.add_argument("--limit", type=int, default=10)
 
     create_bookmark_parser = subparsers.add_parser(
-        "create-bookmark", help="Create a parking bookmark"
+        "create-bookmark", help="Create a parking bookmark",
+        parents=[car_no_parent],
     )
     create_bookmark_parser.add_argument("--car-no", required=True)
     create_bookmark_parser.add_argument("--title", default="")
@@ -406,6 +427,20 @@ def _car_no_from_args(args: argparse.Namespace, raw: Optional[str]) -> Optional[
     if raw is None:
         return None
     return normalize_car_no(raw, strict=not args.allow_any_car_no)
+
+
+def validate_args(args: argparse.Namespace) -> None:
+    """Validate and normalize user input in place, before any login or network I/O."""
+    strict = not args.allow_any_car_no
+    for field in ("page", "limit", "visit_id", "bookmark_id"):
+        if hasattr(args, field):
+            validate_positive_int(getattr(args, field), field=field)
+    if getattr(args, "car_no", None) is not None:
+        args.car_no = normalize_car_no(args.car_no, strict=strict)
+    if args.command in {"create-visit", "update-visit"}:
+        args.start_date, args.end_date = validate_date_range(
+            args.start_date, args.end_date
+        )
 
 
 def run_command(client: AptStoryClient, args: argparse.Namespace) -> Any:
@@ -471,8 +506,9 @@ def run_command(client: AptStoryClient, args: argparse.Namespace) -> Any:
 
 def main(argv: Optional[list[str]] = None) -> int:
     args = parse_args(argv)
-    client = build_client(args)
+    validate_args(args)
     try:
+        client = build_client(args)
         client.login()
         print_json(run_command(client, args))
         return 0

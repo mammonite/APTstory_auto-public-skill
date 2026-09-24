@@ -154,5 +154,76 @@ class ClientJsonDecodeTests(unittest.TestCase):
                 client._api_json("GET", "/parking/settings")
 
 
+class AllowAnyCarNoPlacementTests(unittest.TestCase):
+    BASE = ["create-visit", "--car-no", "TEMP-1",
+            "--start-date", "2026-03-10", "--end-date", "2026-03-10"]
+
+    def test_flag_after_subcommand(self):
+        args = cli.parse_args(self.BASE + ["--allow-any-car-no"])
+        self.assertTrue(args.allow_any_car_no)
+
+    def test_flag_before_subcommand_is_kept(self):
+        args = cli.parse_args(["--allow-any-car-no"] + self.BASE)
+        self.assertTrue(args.allow_any_car_no)
+
+    def test_flag_defaults_to_false(self):
+        args = cli.parse_args(self.BASE)
+        self.assertFalse(args.allow_any_car_no)
+
+
+class ValidateBeforeLoginTests(unittest.TestCase):
+    def _run_main(self, argv):
+        with mock.patch.object(cli, "build_client") as build_client:
+            with self.assertRaises(SystemExit):
+                cli.main(["--base-url", "https://demo.aptstory.com",
+                          "--username", "u", "--password", "p"] + argv)
+        build_client.assert_not_called()
+
+    def test_invalid_date_rejected_before_login(self):
+        self._run_main(["create-visit", "--car-no", "12가3456",
+                        "--start-date", "2026-13-10", "--end-date", "2026-03-10"])
+
+    def test_invalid_car_no_rejected_before_login(self):
+        self._run_main(["create-bookmark", "--car-no", "ABC"])
+
+    def test_non_positive_id_rejected_before_login(self):
+        self._run_main(["delete-visit", "0"])
+
+
+class NetworkErrorTests(unittest.TestCase):
+    def test_read_timeout_becomes_runtime_error(self):
+        client = cli.AptStoryClient(
+            base_url="https://demo.aptstory.com",
+            username="u",
+            password="p",
+        )
+
+        class TimeoutResp:
+            def read(self):
+                raise TimeoutError("timed out")
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+        with mock.patch.object(client.opener, "open", return_value=TimeoutResp()):
+            with self.assertRaises(RuntimeError):
+                client._api_json("GET", "/parking/settings")
+
+    def test_login_timeout_becomes_runtime_error(self):
+        client = cli.AptStoryClient(
+            base_url="https://demo.aptstory.com",
+            username="u",
+            password="p",
+        )
+        with mock.patch.object(
+            client.opener, "open", side_effect=ConnectionResetError("reset")
+        ):
+            with self.assertRaises(RuntimeError):
+                client.login()
+
+
 if __name__ == "__main__":
     unittest.main()
